@@ -1,9 +1,37 @@
+use core::str::Utf8Error;
+
 use embassy_net::{tcp::TcpSocket, Stack};
 use embassy_time::{Duration, Timer};
 use embedded_io_async::Write;
 use esp_println::println;
+use httparse::Status;
+use microjson::{self, JSONValue};
+
 
 use super::led_controller::LedController;
+
+#[derive(Debug)]
+pub enum ParseError {
+    HttpError(httparse::Error),
+    Utf8Error(Utf8Error),
+    JsonError(microjson::JSONParsingError),
+}
+
+impl From<httparse::Error> for ParseError {
+    fn from(err: httparse::Error) -> Self {
+        ParseError::HttpError(err)
+    }
+}
+impl From<Utf8Error> for ParseError {
+    fn from(err: Utf8Error) -> Self {
+        ParseError::Utf8Error(err)
+    }
+}
+impl From<microjson::JSONParsingError> for ParseError {
+    fn from(err: microjson::JSONParsingError) -> Self {
+        ParseError::JsonError(err)
+    }
+}
 
 pub struct Server<'d, const B: usize> {
     rx_buffer: [u8; B],
@@ -23,8 +51,62 @@ impl<'d, const B: usize> Server<'d, B> {
         }
     }
     
+    fn parse_request(buffer: &[u8]) -> Result<bool, ParseError> {
+
+        let mut headers = [httparse::EMPTY_HEADER; 64];
+        let mut req = httparse::Request::new(&mut headers);
+        let header_end = if let Status::Complete(n) = req.parse(&buffer)? {
+            n
+        } else {
+            Err(httparse::Error::Status)?
+        };
+
+        let body = core::str::from_utf8(&buffer[header_end..])?;
+
+        let json = JSONValue::load(body);
+
+        let led_value = json.get_key_value("led")?.read_float()?;
+
+        Ok(led_value > 0.5)
+    }
+
+    fn build_response(buffer: &mut [u8]) -> &[u8] {
+        fn add_to_buf(buf: &mut [u8], pos: usize, text: &str) -> usize {
+            let text = text.as_bytes();
+            let len = text.len();
+            buf[pos..pos + len].copy_from_slice(text);
+            pos + len
+        }
+
+        let mut pos = 0;
+
+        let status_line = "HTTP/1.1 200 OK";
+        let contents = "{\"led\": \"on\"}";
+
+        pos = add_to_buf(buffer, pos, status_line);
+        pos = add_to_buf(buffer, pos, "\r\n");
+        pos = add_to_buf(buffer, pos, "Content-Length: ");
+        pos = add_to_buf(
+            buffer,
+            pos,
+            itoa::Buffer::new().format(contents.len()),
+        );
+        pos = add_to_buf(buffer, pos, "\r\n");
+        pos = add_to_buf(
+            buffer,
+            pos,
+            "Content-Type: application/json\r\n",
+        );
+        pos = add_to_buf(buffer, pos, "\r\n");
+        pos = add_to_buf(buffer, pos, contents);
+        pos = add_to_buf(buffer, pos, "\r\n");
+
+        &buffer[..pos]
+    } 
+
     pub async fn run(&mut self) {
         loop {
+            println!("Creating socket...");
             let mut socket = TcpSocket::new(self.stack, &mut self.rx_buffer, &mut self.tx_buffer);
             socket.set_timeout(Some(embassy_time::Duration::from_secs(1)));
             socket.set_keep_alive(None);
@@ -37,7 +119,7 @@ impl<'d, const B: usize> Server<'d, B> {
                     }
                 }
             };
-            let accept_result = socket.accept((v4.address.address(), 8080)).await;
+            let accept_result = socket.accept((v4.address.address(), 8308)).await;
             if let Err(e) = accept_result {
                 println!("accept error: {:?}", e);
             } else {
@@ -51,79 +133,16 @@ impl<'d, const B: usize> Server<'d, B> {
                             break;
                         }
                         Ok(n) => {
-                            println!(
-                                "Contents:\n{}\nThose were the contents",
-                                core::str::from_utf8(&buf[..n]).unwrap()
-                            );
+                            if let Ok(res) = Self::parse_request(&buf[..n]) {
+                                let _ = self.controller.set_strip(res).await;
 
-                            let mut headers = [httparse::EMPTY_HEADER; 64];
-                            let mut req = httparse::Request::new(&mut headers);
-                            let status = req.parse(&buf[..n]).unwrap();
-                            println!("status: {:?}", status);
+                                let response = Self::build_response(&mut buf);
 
-                            println!("path: {:?}", req.path);
-
-                            if let Some(path) = req.path {
-                                match path {
-                                    "/?led=1" => {
-                                        println!("LED ON");
-                                        let _ = self.controller.set_strip(true).await;
-                                    }
-                                    "/?led=0" => {
-                                        println!("LED OFF");
-                                        let _ = self.controller.set_strip(false).await;
-                                    }
-                                    _ => {}
+                                if socket.write_all(response).await.is_ok() {
+                                    let _ = socket.flush().await;
                                 }
-                            }
-
-                            for header in req.headers {
-                                println!(
-                                    "{}: {:?}",
-                                    header.name,
-                                    core::str::from_utf8(header.value).unwrap()
-                                );
-                            }
-
-                            let mut response_buf = [0; 1024];
-
-                            fn add_to_buf(buf: &mut [u8], pos: usize, text: &str) -> usize {
-                                let text = text.as_bytes();
-                                let len = text.len();
-                                buf[pos..pos + len].copy_from_slice(text);
-                                pos + len
-                            }
-
-                            let mut pos = 0;
-
-                            let status_line = "HTTP/1.1 200 OK";
-                            let contents = "{\"led\": \"on\"}";
-
-                            pos = add_to_buf(&mut response_buf, pos, status_line);
-                            pos = add_to_buf(&mut response_buf, pos, "\r\n");
-                            pos = add_to_buf(&mut response_buf, pos, "Content-Length: ");
-                            pos = add_to_buf(
-                                &mut response_buf,
-                                pos,
-                                itoa::Buffer::new().format(contents.len()),
-                            );
-                            pos = add_to_buf(&mut response_buf, pos, "\r\n");
-                            pos = add_to_buf(
-                                &mut response_buf,
-                                pos,
-                                "Content-Type: application/json\r\n",
-                            );
-                            pos = add_to_buf(&mut response_buf, pos, "\r\n");
-                            pos = add_to_buf(&mut response_buf, pos, contents);
-                            pos = add_to_buf(&mut response_buf, pos, "\r\n");
-
-                            println!(
-                                "Response:\n{}\n",
-                                core::str::from_utf8(&response_buf[..pos]).unwrap()
-                            );
-
-                            if socket.write_all(response_buf[..pos].as_ref()).await.is_ok() {
-                                let _ = socket.flush().await;
+                            } else {
+                                socket.abort();
                             }
                         }
                         Err(e) => {

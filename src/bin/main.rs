@@ -101,6 +101,8 @@ async fn main(spawner: Spawner) {
     let strip_pin = peripherals.GPIO7.degrade();
     let controller = LedController::new(strip_pin, peripherals.RMT).unwrap();
 
+    println!("Starting server...");
+
     let mut server = Server::<4096>::new(stack, controller);
 
     server.run().await;
