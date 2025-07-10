@@ -134,6 +134,7 @@ impl<'d, const B: usize> Server<'d, B> {
                         }
                         Ok(n) => {
                             if let Ok(res) = Self::parse_request(&buf[..n]) {
+                                println!("Parsed request: {:?}", res);
                                 let _ = self.controller.set_strip(res).await;
 
                                 let response = Self::build_response(&mut buf);
