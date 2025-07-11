@@ -3,13 +3,14 @@
 #![feature(type_alias_impl_trait)]
 
 use blinky::components::{
-    led_controller::LedController,
+    led_controller::{run_leds, LedCommand, LedController, LedSignal},
     server::Server,
     wifi::{connection, net_task},
 };
 
 use embassy_executor::Spawner;
 use embassy_net::StackResources;
+use embassy_sync::{blocking_mutex::raw::CriticalSectionRawMutex, signal::Signal};
 use embassy_time::{Duration, Timer};
 use esp_hal::clock::CpuClock;
 use esp_hal::{
@@ -20,25 +21,16 @@ use esp_hal::{
 use esp_println::println;
 use static_cell::make_static;
 
+extern crate alloc;
+
 #[panic_handler]
 fn panic(_: &core::panic::PanicInfo) -> ! {
     loop {}
 }
 
-extern crate alloc;
-
 const SSID: &str = env!("SSID");
 const PASSWORD: &str = env!("PASSWORD");
-
-#[embassy_executor::task]
-async fn _run(led_pin: AnyPin) {
-    let mut led = Output::new(led_pin, Level::Low, OutputConfig::default());
-    led.set_high();
-    loop {
-        Timer::after(Duration::from_secs(1)).await;
-        led.toggle();
-    }
-}
+const NUM_LEDS: usize = 12;
 
 #[esp_hal_embassy::main]
 async fn main(spawner: Spawner) {
@@ -80,30 +72,15 @@ async fn main(spawner: Spawner) {
 
     println!("Init done!, {} {}", SSID, PASSWORD);
 
-    /*
-    loop {
-        if stack.is_link_up() {
-            break;
-        }
-        Timer::after(Duration::from_millis(500)).await;
-    }
-
-    println!("Waiting to get IP address...");
-    loop {
-        if let Some(config) = stack.config_v4() {
-            println!("Got IP: {}", config.address);
-            break;
-        }
-        Timer::after(Duration::from_millis(500)).await;
-    }
-    */
+    let led_signal = make_static!(LedSignal::new());
 
     let strip_pin = peripherals.GPIO3.degrade();
-    let mut controller = LedController::new(strip_pin, peripherals.RMT).unwrap();
-    controller.set_strip(true).await.unwrap();
-    
+    let controller = LedController::new(strip_pin, peripherals.RMT, NUM_LEDS).unwrap();
+
+    spawner.spawn(run_leds(controller, led_signal)).ok();
+
     println!("Starting server...");
-    let mut server = Server::<4096>::new(stack, controller);
+    let mut server = Server::<4096>::new(stack, led_signal);
 
     server.run().await;
 }

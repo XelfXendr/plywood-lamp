@@ -7,8 +7,9 @@ use esp_println::println;
 use httparse::Status;
 use microjson::{self, JSONValue};
 
+use crate::components::led_controller::LedCommand;
 
-use super::led_controller::LedController;
+use super::led_controller::LedSignal;
 
 #[derive(Debug)]
 pub enum ParseError {
@@ -38,16 +39,16 @@ pub struct Server<'d, const B: usize> {
     tx_buffer: [u8; B],
 
     stack: Stack<'d>,
-    controller: LedController,
+    led_signal: &'d LedSignal,
 }
 
 impl<'d, const B: usize> Server<'d, B> {
-    pub fn new(stack: Stack<'d>, controller: LedController) -> Self {
+    pub fn new(stack: Stack<'d>, led_signal: &'d LedSignal) -> Self {
         Self {
             rx_buffer: [0; B],
             tx_buffer: [0; B],
             stack,
-            controller,
+            led_signal,
         }
     }
     
@@ -119,6 +120,8 @@ impl<'d, const B: usize> Server<'d, B> {
                     }
                 }
             };
+            println!("Got IP: {}, creating socket", v4.address);
+
             let accept_result = socket.accept((v4.address.address(), 8308)).await;
             if let Err(e) = accept_result {
                 println!("accept error: {:?}", e);
@@ -135,7 +138,11 @@ impl<'d, const B: usize> Server<'d, B> {
                         Ok(n) => {
                             if let Ok(res) = Self::parse_request(&buf[..n]) {
                                 println!("Parsed request: {:?}", res);
-                                let _ = self.controller.set_strip(res).await;
+                                if res {
+                                    self.led_signal.signal(LedCommand::MoveTo(255, 244, 100, 1000));
+                                } else {
+                                    self.led_signal.signal(LedCommand::MoveTo(0, 0, 0, 1000));
+                                }
 
                                 let response = Self::build_response(&mut buf);
 
