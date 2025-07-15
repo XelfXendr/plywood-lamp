@@ -7,9 +7,7 @@ use esp_println::println;
 use httparse::Status;
 use microjson::{self, JSONValue};
 
-use crate::components::led_controller::LedCommand;
-
-use super::led_controller::LedSignal;
+use crate::components::leds::led_runner::{LedCommand, LedSignal};
 
 #[derive(Debug)]
 pub enum ParseError {
@@ -51,9 +49,8 @@ impl<'d, const B: usize> Server<'d, B> {
             led_signal,
         }
     }
-    
-    fn parse_request(buffer: &[u8]) -> Result<bool, ParseError> {
 
+    fn parse_request(buffer: &[u8]) -> Result<bool, ParseError> {
         let mut headers = [httparse::EMPTY_HEADER; 64];
         let mut req = httparse::Request::new(&mut headers);
         let header_end = if let Status::Complete(n) = req.parse(&buffer)? {
@@ -87,23 +84,15 @@ impl<'d, const B: usize> Server<'d, B> {
         pos = add_to_buf(buffer, pos, status_line);
         pos = add_to_buf(buffer, pos, "\r\n");
         pos = add_to_buf(buffer, pos, "Content-Length: ");
-        pos = add_to_buf(
-            buffer,
-            pos,
-            itoa::Buffer::new().format(contents.len()),
-        );
+        pos = add_to_buf(buffer, pos, itoa::Buffer::new().format(contents.len()));
         pos = add_to_buf(buffer, pos, "\r\n");
-        pos = add_to_buf(
-            buffer,
-            pos,
-            "Content-Type: application/json\r\n",
-        );
+        pos = add_to_buf(buffer, pos, "Content-Type: application/json\r\n");
         pos = add_to_buf(buffer, pos, "\r\n");
         pos = add_to_buf(buffer, pos, contents);
         pos = add_to_buf(buffer, pos, "\r\n");
 
         &buffer[..pos]
-    } 
+    }
 
     pub async fn run(&mut self) {
         loop {
@@ -139,7 +128,8 @@ impl<'d, const B: usize> Server<'d, B> {
                             if let Ok(res) = Self::parse_request(&buf[..n]) {
                                 println!("Parsed request: {:?}", res);
                                 if res {
-                                    self.led_signal.signal(LedCommand::MoveTo(255, 244, 100, 1000));
+                                    self.led_signal
+                                        .signal(LedCommand::MoveTo(255, 244, 200, 1000));
                                 } else {
                                     self.led_signal.signal(LedCommand::MoveTo(0, 0, 0, 1000));
                                 }

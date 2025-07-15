@@ -3,18 +3,19 @@
 #![feature(type_alias_impl_trait)]
 
 use blinky::components::{
-    led_controller::{run_leds, LedCommand, LedController, LedSignal},
+    leds::{
+        led_controller::LedController,
+        led_runner::{run_leds, LedSignal},
+    },
     server::Server,
     wifi::{connection, net_task},
 };
 
 use embassy_executor::Spawner;
 use embassy_net::StackResources;
-use embassy_sync::{blocking_mutex::raw::CriticalSectionRawMutex, signal::Signal};
-use embassy_time::{Duration, Timer};
 use esp_hal::clock::CpuClock;
 use esp_hal::{
-    gpio::{AnyPin, Level, Output, OutputConfig, Pin},
+    gpio::Pin,
     rng::Rng,
     timer::{systimer::SystemTimer, timg::TimerGroup},
 };
