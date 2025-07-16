@@ -1,7 +1,0 @@
-{
-  "rust-analyzer.cargo.allTargets": false,
-  "rust-analyzer.cargo.target": "riscv32imc-unknown-none-elf",
-  "rust-analyzer.diagnostics.disabled": [
-    "E0005"
-  ]
-}
