@@ -4,8 +4,8 @@
 
 use blinky::components::{
     leds::{
-        led_controller::LedController,
-        led_runner::{run_leds, LedSignal},
+        controller::LedController,
+        runner::{run_leds, LedSignal},
     },
     server::Server,
     wifi::{connection, net_task},

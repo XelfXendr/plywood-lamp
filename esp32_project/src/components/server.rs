@@ -7,7 +7,7 @@ use esp_println::println;
 use httparse::Status;
 use microjson::{self, JSONValue};
 
-use crate::components::leds::led_runner::{LedCommand, LedSignal};
+use crate::components::leds::runner::{LedCommand, LedSignal};
 
 #[derive(Debug)]
 pub enum ParseError {
@@ -129,9 +129,9 @@ impl<'d, const B: usize> Server<'d, B> {
                                 println!("Parsed request: {:?}", res);
                                 if res {
                                     self.led_signal
-                                        .signal(LedCommand::MoveTo(255, 244, 200, 1000));
+                                        .signal(LedCommand::MoveTo(255, 244, 200, 10000));
                                 } else {
-                                    self.led_signal.signal(LedCommand::MoveTo(0, 0, 0, 1000));
+                                    self.led_signal.signal(LedCommand::MoveTo(0, 0, 0, 10000));
                                 }
 
                                 let response = Self::build_response(&mut buf);

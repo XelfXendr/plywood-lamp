@@ -1,3 +1,3 @@
-pub mod led_controller;
-pub mod led_runner;
-pub mod led_effects;
+pub mod controller;
+pub mod runner;
+pub mod effects;

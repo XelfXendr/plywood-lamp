@@ -10,7 +10,7 @@ use esp_hal::{
     Blocking,
 };
 
-use crate::components::leds::led_effects::Color;
+use crate::components::leds::effects::Color;
 
 // High/Low signal times in nanosecs
 const T0H: u16 = 300;
