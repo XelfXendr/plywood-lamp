@@ -1,36 +1,12 @@
-use core::str::Utf8Error;
-
 use embassy_net::{tcp::TcpSocket, Stack};
 use embassy_time::{Duration, Timer};
 use embedded_io_async::Write;
 use esp_println::println;
-use httparse::Status;
-use microjson::{self, JSONValue};
 
-use crate::components::leds::runner::{LedCommand, LedSignal};
-
-#[derive(Debug)]
-pub enum ParseError {
-    HttpError(httparse::Error),
-    Utf8Error(Utf8Error),
-    JsonError(microjson::JSONParsingError),
-}
-
-impl From<httparse::Error> for ParseError {
-    fn from(err: httparse::Error) -> Self {
-        ParseError::HttpError(err)
-    }
-}
-impl From<Utf8Error> for ParseError {
-    fn from(err: Utf8Error) -> Self {
-        ParseError::Utf8Error(err)
-    }
-}
-impl From<microjson::JSONParsingError> for ParseError {
-    fn from(err: microjson::JSONParsingError) -> Self {
-        ParseError::JsonError(err)
-    }
-}
+use crate::components::{
+    leds::runner::LedSignal,
+    server::request::LedRequest,
+};
 
 pub struct Server<'d, const B: usize> {
     rx_buffer: [u8; B],
@@ -48,24 +24,6 @@ impl<'d, const B: usize> Server<'d, B> {
             stack,
             led_signal,
         }
-    }
-
-    fn parse_request(buffer: &[u8]) -> Result<bool, ParseError> {
-        let mut headers = [httparse::EMPTY_HEADER; 64];
-        let mut req = httparse::Request::new(&mut headers);
-        let header_end = if let Status::Complete(n) = req.parse(&buffer)? {
-            n
-        } else {
-            Err(httparse::Error::Status)?
-        };
-
-        let body = core::str::from_utf8(&buffer[header_end..])?;
-
-        let json = JSONValue::load(body);
-
-        let led_value = json.get_key_value("led")?.read_float()?;
-
-        Ok(led_value > 0.5)
     }
 
     fn build_response(buffer: &mut [u8]) -> &[u8] {
@@ -125,14 +83,8 @@ impl<'d, const B: usize> Server<'d, B> {
                             break;
                         }
                         Ok(n) => {
-                            if let Ok(res) = Self::parse_request(&buf[..n]) {
-                                println!("Parsed request: {:?}", res);
-                                if res {
-                                    self.led_signal
-                                        .signal(LedCommand::MoveTo(255, 244, 200, 10000));
-                                } else {
-                                    self.led_signal.signal(LedCommand::MoveTo(0, 0, 0, 10000));
-                                }
+                            if let Ok(req) = LedRequest::parse_http(&buf[..n]) {
+                                self.led_signal.signal(req);
 
                                 let response = Self::build_response(&mut buf);
 

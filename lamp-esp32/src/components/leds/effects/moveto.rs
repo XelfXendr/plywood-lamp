@@ -1,7 +1,7 @@
 use core::iter::zip;
 
 use embassy_time::Instant;
-use esp_println::{print, println};
+use esp_println::println;
 
 use super::effect::{Effect, EffectEnum, EffectStatus};
 use super::Color;

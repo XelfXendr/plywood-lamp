@@ -56,31 +56,6 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "5c8214115b7bf84099f1309324e63141d4c5d7cc26862f97a0a857dbefe165bd"
 
 [[package]]
-name = "blinky"
-version = "0.1.0"
-dependencies = [
- "critical-section",
- "embassy-executor",
- "embassy-futures",
- "embassy-net",
- "embassy-sync 0.7.0",
- "embassy-time",
- "embedded-io",
- "embedded-io-async",
- "esp-alloc",
- "esp-hal",
- "esp-hal-embassy",
- "esp-println",
- "esp-wifi",
- "heapless",
- "httparse",
- "itoa",
- "microjson",
- "smoltcp",
- "static_cell",
-]
-
-[[package]]
 name = "bytemuck"
 version = "1.23.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -754,6 +729,32 @@ name = "itoa"
 version = "1.0.15"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "4a5f13b858c8d314ee3e8f639011f7ccefe71f97f96e50151fb991f267928e2c"
+
+[[package]]
+name = "lamp-esp32"
+version = "0.1.0"
+dependencies = [
+ "chrono",
+ "critical-section",
+ "embassy-executor",
+ "embassy-futures",
+ "embassy-net",
+ "embassy-sync 0.7.0",
+ "embassy-time",
+ "embedded-io",
+ "embedded-io-async",
+ "esp-alloc",
+ "esp-hal",
+ "esp-hal-embassy",
+ "esp-println",
+ "esp-wifi",
+ "heapless",
+ "httparse",
+ "itoa",
+ "microjson",
+ "smoltcp",
+ "static_cell",
+]
 
 [[package]]
 name = "libm"

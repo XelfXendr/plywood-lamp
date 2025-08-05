@@ -2,18 +2,17 @@ use embassy_futures::select::{select, Either};
 use embassy_sync::{blocking_mutex::raw::CriticalSectionRawMutex, signal::Signal};
 use embassy_time::{Duration, Timer};
 
-use crate::components::leds::effects::{
-    effect::{EffectEnum, EffectStatus},
-    Color, MoveTo,
+use crate::components::{
+    leds::effects::{
+        effect::{EffectEnum, EffectStatus},
+        Color, MoveTo,
+    },
+    server::request::LedRequest,
 };
 
 use super::controller::LedController;
 
-pub type LedSignal = Signal<CriticalSectionRawMutex, LedCommand>;
-
-pub enum LedCommand {
-    MoveTo(u8, u8, u8, u64),
-}
+pub type LedSignal = Signal<CriticalSectionRawMutex, LedRequest>;
 
 #[embassy_executor::task]
 pub async fn run_leds(mut controller: LedController, led_signal: &'static LedSignal) {
@@ -39,10 +38,12 @@ pub async fn run_leds(mut controller: LedController, led_signal: &'static LedSig
 
         // if we got command then accept new effect
         if let Either::First(command) = signal {
-            match command {
-                LedCommand::MoveTo(r, g, b, millis) => {
-                    current_effect =
-                        MoveTo::new(current_color, Color::new(r, g, b), millis).into();
+            current_effect = match command {
+                LedRequest::Set(color, duration) => {
+                    MoveTo::new(current_color, color, duration.as_millis()).into()
+                }
+                LedRequest::DayLightCycle(color, current_time, minutes) => {
+                    todo!()
                 }
             }
         }

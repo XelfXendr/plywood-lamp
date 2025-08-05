@@ -2,13 +2,11 @@
 #![no_main]
 #![feature(type_alias_impl_trait)]
 
-use blinky::components::{
+use lamp_esp32::components::{
     leds::{
         controller::LedController,
         runner::{run_leds, LedSignal},
-    },
-    server::Server,
-    wifi::{connection, net_task},
+    }, server::server::Server, wifi::{connection, net_task}
 };
 
 use embassy_executor::Spawner;
