@@ -2,11 +2,15 @@
 #![no_main]
 #![feature(type_alias_impl_trait)]
 
-use lamp_esp32::components::{
+use lamp_esp32::{
     leds::{
         controller::LedController,
         runner::{run_leds, LedSignal},
-    }, server::server::Server, wifi::{connection, net_task}
+    },
+    server::{
+        wifi::{connection, net_task},
+        Server,
+    },
 };
 
 use embassy_executor::Spawner;

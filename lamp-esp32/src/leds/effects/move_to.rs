@@ -3,9 +3,8 @@ use core::iter::zip;
 use embassy_time::Instant;
 use esp_println::println;
 
-use super::effect::{Effect, EffectEnum, EffectStatus};
-use super::Color;
-
+use super::{Effect, EffectEnum, EffectStatus};
+use crate::types::Color;
 
 pub struct MoveTo {
     from: Color,

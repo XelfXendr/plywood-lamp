@@ -1,4 +1,4 @@
-#[derive(Clone, Copy)]
+#[derive(Clone, Copy, Default)]
 pub struct Color([u8; 3]);
 
 impl Color {

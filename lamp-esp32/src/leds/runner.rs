@@ -2,12 +2,10 @@ use embassy_futures::select::{select, Either};
 use embassy_sync::{blocking_mutex::raw::CriticalSectionRawMutex, signal::Signal};
 use embassy_time::{Duration, Timer};
 
-use crate::components::{
-    leds::effects::{
-        effect::{EffectEnum, EffectStatus},
-        Color, MoveTo,
-    },
-    server::request::LedRequest,
+use crate::{
+    leds::effects::{DaylightCycle, EffectEnum, EffectStatus, MoveTo},
+    server::LedRequest,
+    types::Color,
 };
 
 use super::controller::LedController;
@@ -22,7 +20,7 @@ pub async fn run_leds(mut controller: LedController, led_signal: &'static LedSig
     loop {
         // update LEDs according to effect
         let (current_color, current_status) = current_effect.run();
-        controller.send_color(current_color).await.ok();
+        let _ = controller.send_color(current_color).await;
 
         // wait either for new command or for a delay till next LED update
         let signal = match current_status {
@@ -42,8 +40,8 @@ pub async fn run_leds(mut controller: LedController, led_signal: &'static LedSig
                 LedRequest::Set(color, duration) => {
                     MoveTo::new(current_color, color, duration.as_millis()).into()
                 }
-                LedRequest::DayLightCycle(color, current_time, minutes) => {
-                    todo!()
+                LedRequest::DaylightCycle(color, current_time, minutes) => {
+                    DaylightCycle::new(color, current_time, minutes).into()
                 }
             }
         }

@@ -1,3 +1,5 @@
 #![no_std]
 
-pub mod components;
+pub mod server;
+pub mod leds;
+pub mod types;

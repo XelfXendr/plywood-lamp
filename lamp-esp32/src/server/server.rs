@@ -3,9 +3,9 @@ use embassy_time::{Duration, Timer};
 use embedded_io_async::Write;
 use esp_println::println;
 
-use crate::components::{
+use crate::{
     leds::runner::LedSignal,
-    server::request::LedRequest,
+    server::{request::LedRequest, response_builder::ResponseBuilder},
 };
 
 pub struct Server<'d, const B: usize> {
@@ -24,32 +24,6 @@ impl<'d, const B: usize> Server<'d, B> {
             stack,
             led_signal,
         }
-    }
-
-    fn build_response(buffer: &mut [u8]) -> &[u8] {
-        fn add_to_buf(buf: &mut [u8], pos: usize, text: &str) -> usize {
-            let text = text.as_bytes();
-            let len = text.len();
-            buf[pos..pos + len].copy_from_slice(text);
-            pos + len
-        }
-
-        let mut pos = 0;
-
-        let status_line = "HTTP/1.1 200 OK";
-        let contents = "{\"led\": \"on\"}";
-
-        pos = add_to_buf(buffer, pos, status_line);
-        pos = add_to_buf(buffer, pos, "\r\n");
-        pos = add_to_buf(buffer, pos, "Content-Length: ");
-        pos = add_to_buf(buffer, pos, itoa::Buffer::new().format(contents.len()));
-        pos = add_to_buf(buffer, pos, "\r\n");
-        pos = add_to_buf(buffer, pos, "Content-Type: application/json\r\n");
-        pos = add_to_buf(buffer, pos, "\r\n");
-        pos = add_to_buf(buffer, pos, contents);
-        pos = add_to_buf(buffer, pos, "\r\n");
-
-        &buffer[..pos]
     }
 
     pub async fn run(&mut self) {
@@ -83,16 +57,20 @@ impl<'d, const B: usize> Server<'d, B> {
                             break;
                         }
                         Ok(n) => {
-                            if let Ok(req) = LedRequest::parse_http(&buf[..n]) {
-                                self.led_signal.signal(req);
+                            let parse_result = LedRequest::parse_http(&buf[..n]);
 
-                                let response = Self::build_response(&mut buf);
+                            let mut response_builder = ResponseBuilder::new(&mut buf);
 
-                                if socket.write_all(response).await.is_ok() {
-                                    let _ = socket.flush().await;
+                            let response = match parse_result {
+                                Ok(request) => {
+                                    self.led_signal.signal(request);
+                                    response_builder.build_response()
                                 }
-                            } else {
-                                socket.abort();
+                                Err(error) => response_builder.build_bad_request(error),
+                            };
+
+                            if socket.write_all(response).await.is_ok() {
+                                let _ = socket.flush().await;
                             }
                         }
                         Err(e) => {

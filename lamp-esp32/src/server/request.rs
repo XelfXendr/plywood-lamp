@@ -3,11 +3,11 @@ use embassy_time::Duration;
 use httparse::Status;
 use microjson::JSONValue;
 
-use crate::components::{leds::effects::Color, server::parse_error::ParseError};
+use crate::{types::Color, server::parse_error::ParseError};
 
 pub enum LedRequest {
     Set(Color, Duration),
-    DayLightCycle(Color, DateTime<Utc>, [u64; 4]),
+    DaylightCycle(Color, DateTime<Utc>, [u64; 4]),
 }
 
 impl LedRequest {
@@ -72,7 +72,7 @@ impl LedRequest {
                     Err(ParseError::ValueError)?
                 }
 
-                LedRequest::DayLightCycle(on_color, current_time, minutes)
+                LedRequest::DaylightCycle(on_color, current_time, minutes)
             }
             _ => Err(ParseError::ValueError)?,
         };
