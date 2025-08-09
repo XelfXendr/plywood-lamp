@@ -1,6 +1,6 @@
 use core::iter::zip;
 
-use embassy_time::Instant;
+use embassy_time::{Duration, Instant};
 use esp_println::println;
 
 use super::{Effect, EffectEnum, EffectStatus};
@@ -14,12 +14,12 @@ pub struct MoveTo {
 }
 
 impl MoveTo{
-    pub fn new(from: Color, to: Color, duration: u64) -> Self {
+    pub fn new(from: Color, to: Color, duration: Duration) -> Self {
         Self {
             from,
             to,
             t0: Instant::now(),
-            duration,
+            duration: duration.as_millis(),
         }
     }
 }
@@ -67,7 +67,7 @@ impl Effect for MoveTo {
 
         if let Some(time) = next_update {
             println!("{}", time);
-            (current_color, EffectStatus::InProgress(time))
+            (current_color, EffectStatus::InProgress(Duration::from_millis(time)))
         } else {
             (current_color, EffectStatus::Finished)
         }

@@ -4,11 +4,11 @@ use httparse::Status;
 use microjson::JSONValue;
 
 use super::parse_error::ParseError;
-use crate::types::Color;
+use crate::types::{ranges::OverlapRanges, Color};
 
 pub enum LedRequest {
     Set(Color, Duration),
-    DaylightCycle(Color, DateTime<Utc>, [u64; 4]),
+    DaylightCycle(Color, DateTime<Utc>, OverlapRanges<u64, 4>),
 }
 
 impl LedRequest {
@@ -68,17 +68,14 @@ impl LedRequest {
                         Ok(())
                     })?;
 
-                // make sure minutes are ordered and in correct range
-                for i in 0..3 {
-                    if minutes[i] > minutes[i + 1] {
-                        Err(ParseError::ValueError)?
-                    }
-                }
+                // make sure minutes are in correct range and well ordered (checked in OverlapRanges::new)
                 if minutes[3] > 24 * 60 {
                     Err(ParseError::ValueError)?
                 }
 
-                LedRequest::DaylightCycle(on_color, current_time, minutes)
+                let ranges = OverlapRanges::new(minutes)?;
+
+                LedRequest::DaylightCycle(on_color, current_time, ranges)
             }
             _ => Err(ParseError::ValueError)?,
         };

@@ -1,3 +1,5 @@
+use embassy_time::Duration;
+
 use super::{MoveTo, DaylightCycle};
 use crate::types::Color;
 
@@ -20,6 +22,6 @@ impl EffectEnum {
 }
 
 pub enum EffectStatus {
-    InProgress(u64),
+    InProgress(Duration),
     Finished,
 }

@@ -2,10 +2,7 @@ use embassy_futures::select::{select, Either};
 use embassy_sync::{blocking_mutex::raw::CriticalSectionRawMutex, signal::Signal};
 use embassy_time::{Duration, Timer};
 
-use crate::{
-    server::LedRequest,
-    types::Color
-};
+use crate::{server::LedRequest, types::Color};
 
 use super::{
     controller::LedController,
@@ -16,8 +13,12 @@ pub type LedSignal = Signal<CriticalSectionRawMutex, LedRequest>;
 
 #[embassy_executor::task]
 pub async fn run_leds(mut controller: LedController, led_signal: &'static LedSignal) {
-    let mut current_effect: EffectEnum =
-        MoveTo::new(Color::new(0, 0, 0), Color::new(255, 244, 200), 1000).into();
+    let mut current_effect: EffectEnum = MoveTo::new(
+        Color::new(0, 0, 0),
+        Color::new(255, 244, 200),
+        Duration::from_secs(10),
+    )
+    .into();
 
     loop {
         // update LEDs according to effect
@@ -26,12 +27,8 @@ pub async fn run_leds(mut controller: LedController, led_signal: &'static LedSig
 
         // wait either for new command or for a delay till next LED update
         let signal = match current_status {
-            EffectStatus::InProgress(millis) => {
-                select(
-                    led_signal.wait(),
-                    Timer::after(Duration::from_millis(millis)),
-                )
-                .await
+            EffectStatus::InProgress(timeout) => {
+                select(led_signal.wait(), Timer::after(timeout)).await
             }
             EffectStatus::Finished => Either::First(led_signal.wait().await),
         };
@@ -40,10 +37,10 @@ pub async fn run_leds(mut controller: LedController, led_signal: &'static LedSig
         if let Either::First(command) = signal {
             current_effect = match command {
                 LedRequest::Set(color, duration) => {
-                    MoveTo::new(current_color, color, duration.as_millis()).into()
+                    MoveTo::new(current_color, color, duration).into()
                 }
-                LedRequest::DaylightCycle(color, current_time, minutes) => {
-                    DaylightCycle::new(current_color, color, current_time, minutes).into()
+                LedRequest::DaylightCycle(color, current_time, ranges) => {
+                    DaylightCycle::new(current_color, color, current_time, ranges).into()
                 }
             }
         }
