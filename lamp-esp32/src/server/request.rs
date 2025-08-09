@@ -3,7 +3,8 @@ use embassy_time::Duration;
 use httparse::Status;
 use microjson::JSONValue;
 
-use crate::{types::Color, server::parse_error::ParseError};
+use super::parse_error::ParseError;
+use crate::types::Color;
 
 pub enum LedRequest {
     Set(Color, Duration),
@@ -57,18 +58,23 @@ impl LedRequest {
 
                 let mut minutes_iter = json.get_key_value("cycle_minutes")?.iter_array()?;
                 let mut minutes: [u64; 4] = [0; 4];
-                minutes.iter_mut().try_for_each(|m| -> Result<(), ParseError> {
-                    *m = minutes_iter.next().ok_or(ParseError::ValueError)?.read_integer()? as u64;
-                    Ok(())
-                })?;
-                
+                minutes
+                    .iter_mut()
+                    .try_for_each(|m| -> Result<(), ParseError> {
+                        *m = minutes_iter
+                            .next()
+                            .ok_or(ParseError::ValueError)?
+                            .read_integer()? as u64;
+                        Ok(())
+                    })?;
+
                 // make sure minutes are ordered and in correct range
                 for i in 0..3 {
-                    if minutes[i] > minutes[i+1] {
+                    if minutes[i] > minutes[i + 1] {
                         Err(ParseError::ValueError)?
                     }
                 }
-                if minutes[3] > 24*60 {
+                if minutes[3] > 24 * 60 {
                     Err(ParseError::ValueError)?
                 }
 

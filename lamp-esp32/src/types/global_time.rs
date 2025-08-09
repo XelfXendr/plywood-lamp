@@ -1,12 +1,12 @@
 use chrono::{DateTime, Timelike, Utc};
 use embassy_time::Instant;
 
-pub struct GlobalInstant {
-    instant: Instant,
+pub struct GlobalTime {
     datetime: DateTime<Utc>,
+    instant: Instant, // local chip time when datetime was received
 }
 
-impl GlobalInstant {
+impl GlobalTime {
     pub fn now(datetime: DateTime<Utc>) -> Self {
         Self {
             instant: Instant::now(),
@@ -15,8 +15,7 @@ impl GlobalInstant {
     }
 
     pub fn day_minute(&self) -> u64 {
-        ((self.datetime.num_seconds_from_midnight() as u64 
-            + self.instant.elapsed().as_secs()) / 60)
+        ((self.datetime.num_seconds_from_midnight() as u64 + self.instant.elapsed().as_secs()) / 60)
             % (24 * 60)
     }
 
@@ -27,7 +26,7 @@ impl GlobalInstant {
         let to_secs = minute * 60;
 
         if current_secs > to_secs {
-            0
+            24 * 60 * 60 + to_secs - current_secs
         } else {
             to_secs - current_secs
         }

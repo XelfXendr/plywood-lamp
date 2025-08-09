@@ -3,10 +3,9 @@ use embassy_time::{Duration, Timer};
 use embedded_io_async::Write;
 use esp_println::println;
 
-use crate::{
-    leds::runner::LedSignal,
-    server::{request::LedRequest, response_builder::ResponseBuilder},
-};
+use crate::leds::runner::LedSignal;
+
+use super::{LedRequest, ResponseBuilder};
 
 pub struct Server<'d, const B: usize> {
     rx_buffer: [u8; B],

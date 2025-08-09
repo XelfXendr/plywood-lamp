@@ -31,7 +31,7 @@ impl Into<EffectEnum> for MoveTo {
 }
 
 impl Effect for MoveTo {
-    fn run(&mut self) -> (Color, EffectStatus) {
+    fn step(&mut self) -> (Color, EffectStatus) {
         let dt = self.t0.elapsed().as_millis();
         if dt >= self.duration {
             return (self.to, EffectStatus::Finished)

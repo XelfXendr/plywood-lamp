@@ -1,5 +1,5 @@
 mod color;
 pub use color::Color;
 
-mod global_instant;
-pub use global_instant::GlobalInstant;
+mod global_time;
+pub use global_time::GlobalTime;

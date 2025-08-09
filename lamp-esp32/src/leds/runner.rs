@@ -3,12 +3,14 @@ use embassy_sync::{blocking_mutex::raw::CriticalSectionRawMutex, signal::Signal}
 use embassy_time::{Duration, Timer};
 
 use crate::{
-    leds::effects::{DaylightCycle, EffectEnum, EffectStatus, MoveTo},
     server::LedRequest,
-    types::Color,
+    types::Color
 };
 
-use super::controller::LedController;
+use super::{
+    controller::LedController,
+    effects::{DaylightCycle, EffectEnum, EffectStatus, MoveTo},
+};
 
 pub type LedSignal = Signal<CriticalSectionRawMutex, LedRequest>;
 
@@ -19,7 +21,7 @@ pub async fn run_leds(mut controller: LedController, led_signal: &'static LedSig
 
     loop {
         // update LEDs according to effect
-        let (current_color, current_status) = current_effect.run();
+        let (current_color, current_status) = current_effect.step();
         let _ = controller.send_color(current_color).await;
 
         // wait either for new command or for a delay till next LED update
@@ -41,7 +43,7 @@ pub async fn run_leds(mut controller: LedController, led_signal: &'static LedSig
                     MoveTo::new(current_color, color, duration.as_millis()).into()
                 }
                 LedRequest::DaylightCycle(color, current_time, minutes) => {
-                    DaylightCycle::new(color, current_time, minutes).into()
+                    DaylightCycle::new(current_color, color, current_time, minutes).into()
                 }
             }
         }

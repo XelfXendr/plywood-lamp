@@ -12,7 +12,7 @@ use esp_hal::{
 
 use crate::types::Color;
 
-// High/Low signal times in nanosecs
+// High/Low pulse code signal times in nanosecs
 const T0H: u16 = 300;
 const T0L: u16 = 1000;
 const T1H: u16 = 1000;

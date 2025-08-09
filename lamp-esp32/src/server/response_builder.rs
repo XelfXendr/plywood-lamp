@@ -1,4 +1,4 @@
-use super::parse_error::ParseError;
+use super::ParseError;
 
 pub struct ResponseBuilder<'a> {
     buffer: &'a mut [u8],

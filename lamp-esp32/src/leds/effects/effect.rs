@@ -2,7 +2,7 @@ use super::{MoveTo, DaylightCycle};
 use crate::types::Color;
 
 pub trait Effect: Into<EffectEnum> {
-    fn run(&mut self) -> (Color, EffectStatus);
+    fn step(&mut self) -> (Color, EffectStatus);
 }
 
 pub enum EffectEnum {
@@ -11,10 +11,10 @@ pub enum EffectEnum {
 }
 
 impl EffectEnum {
-    pub fn run(&mut self) -> (Color, EffectStatus) {
+    pub fn step(&mut self) -> (Color, EffectStatus) {
         match self {
-            EffectEnum::MoveTo(effect) => effect.run(),
-            EffectEnum::DaylightCycle(effect) => effect.run(),
+            EffectEnum::MoveTo(effect) => effect.step(),
+            EffectEnum::DaylightCycle(effect) => effect.step(),
         }
     }
 }
