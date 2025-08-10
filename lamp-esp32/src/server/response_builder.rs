@@ -40,7 +40,7 @@ impl<'a> ResponseBuilder<'a> {
     pub fn build_bad_request(&mut self, error: ParseError) -> &[u8] {
         self.pos = 0;
 
-        let status_line = "HTTP/1.1 200 OK";
+        let status_line = "HTTP/1.1 400 Bad Request";
         let contents_begin = "{\"response\": \"";
         let contents_explanation = match error {
             ParseError::HttpError(_) => "Invalid HTTP request",

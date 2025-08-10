@@ -40,7 +40,7 @@ impl LedRequest {
                 let duration =
                     Duration::from_millis(json.get_key_value("duration")?.read_integer()? as u64);
 
-                LedRequest::Set(color, duration)
+                Self::Set(color, duration)
             }
             "cycle" => {
                 /*
@@ -75,7 +75,7 @@ impl LedRequest {
 
                 let ranges = OverlapRanges::new(minutes)?;
 
-                LedRequest::DaylightCycle(on_color, current_time, ranges)
+                Self::DaylightCycle(on_color, current_time, ranges)
             }
             _ => Err(ParseError::ValueError)?,
         };

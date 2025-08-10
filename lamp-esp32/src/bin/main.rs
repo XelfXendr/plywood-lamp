@@ -83,7 +83,7 @@ async fn main(spawner: Spawner) {
     spawner.spawn(run_leds(controller, led_signal)).ok();
 
     println!("Starting server...");
-    let mut server = Server::<4096>::new(stack, led_signal);
+    let mut server = Server::<4096, 1024>::new(stack, led_signal);
 
     server.run().await;
 }

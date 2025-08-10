@@ -4,7 +4,7 @@ use embassy_time::Duration;
 use super::{EffectEnum, EffectStatus};
 use crate::leds::effects::MoveTo;
 use crate::types::ranges::OverlapRanges;
-use crate::types::{global_time::GlobalTime, Color};
+use crate::types::{Color, global_time::GlobalTime};
 
 use super::Effect;
 
@@ -19,9 +19,9 @@ pub struct DaylightCycle {
 
 enum CycleState {
     Rising(MoveTo),
-    On,
+    On(Duration),
     Falling(MoveTo),
-    Off,
+    Off(Duration),
 }
 
 impl DaylightCycle {
@@ -39,7 +39,10 @@ impl DaylightCycle {
         let to_minute_idx = transition_ranges.which(current_minute);
 
         let (move_to_color, state) = match to_minute_idx {
-            0 => (Color::black(), CycleState::Off),
+            0 => (
+                Color::black(),
+                CycleState::Off(now.duration_till_minute(transition_ranges[0])),
+            ),
             1 => {
                 let color = Color::black().interpolate(
                     on_color,
@@ -53,7 +56,10 @@ impl DaylightCycle {
                 ));
                 (color, state)
             }
-            2 => (on_color, CycleState::On),
+            2 => (
+                on_color,
+                CycleState::On(now.duration_till_minute(transition_ranges[2])),
+            ),
             3 => {
                 let color = on_color.interpolate(
                     Color::black(),
@@ -91,6 +97,51 @@ impl DaylightCycle {
 
         todo!()
     }
+
+    fn get_color_status(&mut self) -> (Color, EffectStatus) {
+        if let Some(effect) = &mut self.init_effect {
+            let (color, status) = effect.step();
+            if let EffectStatus::InProgress(_) = status {
+                return (color, status);
+            }
+
+            self.init_effect = None;
+            match &mut self.state {
+                CycleState::Rising(effect) => effect.reset_time(),
+                CycleState::Falling(effect) => effect.reset_time(),
+                _ => {}
+            }
+        }
+
+        let step = match &mut self.state {
+            CycleState::Rising(effect) => Some(effect.step()),
+            CycleState::Falling(effect) => Some(effect.step()),
+            _ => None,
+        };
+
+        if let Some((color, status)) = step
+            && let EffectStatus::InProgress(_) = status
+        {
+            return (color, status);
+        }
+
+        // time to update our state
+
+        self.state = self.should_be_state();
+
+        let (color, mut status) = match &mut self.state {
+            CycleState::Rising(effect) => effect.step(),
+            CycleState::Falling(effect) => effect.step(),
+            CycleState::On(duration) => (self.on_color, EffectStatus::InProgress(*duration)),
+            CycleState::Off(duration) => (Color::black(), EffectStatus::InProgress(*duration)),
+        };
+
+        if let EffectStatus::Finished = status {
+            status = EffectStatus::InProgress(Duration::from_secs(1));
+        }
+
+        (color, status)
+    }
 }
 
 impl Into<EffectEnum> for DaylightCycle {
@@ -101,27 +152,10 @@ impl Into<EffectEnum> for DaylightCycle {
 
 impl Effect for DaylightCycle {
     fn step(&mut self) -> (Color, EffectStatus) {
-        if let Some(effect) = &mut self.init_effect {
-            let (color, status) = effect.step();
-            if let EffectStatus::InProgress(_) = status {
-                self.current_color = color;
-                return (color, status);
-            }
+        let (color, status) = self.get_color_status();
 
-            self.init_effect = None;
-        }
+        self.current_color = color;
 
-        let step = match &mut self.state {
-            CycleState::Rising(effect) => Some(effect.step()),
-            CycleState::Falling(effect) => Some(effect.step()),
-            _ => None,
-        };
-
-        /*if let Some((color, status)) = step && let EffectStatus::InProgress(_) = status {
-            self.current_color = color;
-            return (color, status);
-        }*/
-
-        todo!()
+        (color, status)
     }
 }
