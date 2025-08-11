@@ -56,6 +56,7 @@ impl<'d, const B: usize, const W: usize> Server<'d, B, W> {
                             break;
                         }
                         Ok(n) => {
+                            println!("{:?}", str::from_utf8(&self.work_buffer[..n]));
                             let parse_result = LedRequest::parse_http(&self.work_buffer[..n]);
 
                             let mut response_builder = ResponseBuilder::new(&mut self.work_buffer);

@@ -1,5 +1,6 @@
-use chrono::{DateTime, Utc};
+use chrono::{DateTime, FixedOffset, Timelike};
 use embassy_time::Duration;
+use esp_println::println;
 use httparse::Status;
 use microjson::JSONValue;
 
@@ -8,7 +9,7 @@ use crate::types::{ranges::OverlapRanges, Color};
 
 pub enum LedRequest {
     Set(Color, Duration),
-    DaylightCycle(Color, DateTime<Utc>, OverlapRanges<u64, 4>),
+    DaylightCycle(Color, DateTime<FixedOffset>, OverlapRanges<u64, 4>),
 }
 
 impl LedRequest {
@@ -31,9 +32,9 @@ impl LedRequest {
                 /*
                 expected format:
                 {
-                    type: "set",
-                    color: [255, 244, 200]
-                    duration: 10000
+                    "type": "set",
+                    "color": [255, 244, 200],
+                    "duration": 10000
                 }
                 */
                 let color = Self::parse_color(json.get_key_value("color")?)?;
@@ -46,15 +47,17 @@ impl LedRequest {
                 /*
                 expected format:
                 {
-                    type: "cycle",
-                    on_color: [255, 244, 200],
-                    current_time: "2014-11-28T21:00:09+09:00",
-                    cycle_minutes: [540, 600, 1260, 1320]
+                    "type": "cycle",
+                    "on_color": [255, 244, 200],
+                    "current_time": "2014-11-28T21:00:09+09:00",
+                    "cycle_minutes": [540, 600, 1260, 1320]
                 }
                 */
                 let on_color = Self::parse_color(json.get_key_value("on_color")?)?;
-                let current_time: DateTime<Utc> =
+                let current_time: DateTime<FixedOffset> =
                     json.get_key_value("current_time")?.read_string()?.parse()?;
+
+                println!("{:?}:{:?} + {:?}", current_time.hour(), current_time.minute(), current_time.hour());
 
                 let mut minutes_iter = json.get_key_value("cycle_minutes")?.iter_array()?;
                 let mut minutes: [u64; 4] = [0; 4];

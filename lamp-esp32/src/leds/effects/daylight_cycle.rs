@@ -1,5 +1,6 @@
-use chrono::{DateTime, Utc};
+use chrono::{DateTime, FixedOffset};
 use embassy_time::Duration;
+use esp_println::println;
 
 use super::{EffectEnum, EffectStatus};
 use crate::leds::effects::MoveTo;
@@ -11,12 +12,13 @@ use super::Effect;
 pub struct DaylightCycle {
     on_color: Color,
     current_color: Color,
-    time: GlobalTime,
+    time: GlobalTime<FixedOffset>,
     transition_ranges: OverlapRanges<u64, 4>,
     state: CycleState,
     init_effect: Option<MoveTo>,
 }
 
+#[derive(Debug)]
 enum CycleState {
     Rising(MoveTo),
     On(Duration),
@@ -28,7 +30,7 @@ impl DaylightCycle {
     pub fn new(
         from_color: Color,
         on_color: Color,
-        current_time: DateTime<Utc>,
+        current_time: DateTime<FixedOffset>,
         transition_ranges: OverlapRanges<u64, 4>,
     ) -> Self {
         let time = GlobalTime::at(current_time);
@@ -73,8 +75,13 @@ impl DaylightCycle {
                 ));
                 (color, state)
             }
-            _ => unreachable!("There is only 4 ranges."),
+            _ => unreachable!("There are only 4 ranges."),
         };
+
+        println!("range: {:?}, current_minute: {:?}, state: {:?}", to_minute_idx, current_minute, state);
+        if let CycleState::Off(d) = state {
+            println!("Dur: {:?} minutes", d.as_secs() / 60);
+        }
 
         Self {
             on_color,
@@ -94,8 +101,15 @@ impl DaylightCycle {
         let now = self.time.now();
         let current_minute = now.day_minute();
         let current_range = self.transition_ranges.which(current_minute);
+        let till_next = now.duration_till_minute(self.transition_ranges[current_range]);
 
-        todo!()
+        match current_range {
+            0 => CycleState::Off(till_next),
+            1 => CycleState::Rising(MoveTo::new(self.current_color, self.on_color, till_next)),
+            2 => CycleState::On(till_next),
+            3 => CycleState::Falling(MoveTo::new(self.current_color, Color::black(), till_next)),
+            _ => unreachable!("There are only 4 ranges."),
+        }
     }
 
     fn get_color_status(&mut self) -> (Color, EffectStatus) {
@@ -126,8 +140,12 @@ impl DaylightCycle {
         }
 
         // time to update our state
-
         self.state = self.should_be_state();
+
+        println!("new state: {:?}", self.state);
+        if let CycleState::Off(d) = self.state {
+            println!("Dur: {:?} minutes", d.as_secs() / 60);
+        }
 
         let (color, mut status) = match &mut self.state {
             CycleState::Rising(effect) => effect.step(),

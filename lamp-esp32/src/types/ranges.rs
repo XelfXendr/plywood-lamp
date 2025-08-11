@@ -1,5 +1,10 @@
 use core::ops::{Index, IndexMut};
 
+use chrono::TimeZone;
+use embassy_time::Duration;
+
+use crate::types::global_time::GlobalInstant;
+
 #[derive(Debug)]
 pub struct RangesError;
 
@@ -48,5 +53,14 @@ impl<T: Eq + Ord, const N: usize> OverlapRanges<T, N> {
         }
 
         unreachable!("because the array is well ordered")
+    }
+
+
+}
+
+impl<const N: usize> OverlapRanges<u64, N> {
+    pub fn duration_till_next<Tz: TimeZone>(&self, now: GlobalInstant<Tz>) -> Duration {
+        let which = self.which(now.day_minute());
+        now.duration_till_minute(self.ranges[which])
     }
 }

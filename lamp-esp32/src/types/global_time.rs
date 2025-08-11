@@ -1,33 +1,33 @@
-use chrono::{DateTime, Timelike, Utc};
+use chrono::{DateTime, TimeZone, Timelike};
 use embassy_time::{Duration, Instant};
 
-pub struct GlobalTime {
-    datetime: DateTime<Utc>,
+pub struct GlobalTime<Tz: TimeZone> {
+    datetime: DateTime<Tz>,
     instant: Instant, // local chip time when datetime was received
 }
 
-pub struct GlobalInstant {
-    datetime: DateTime<Utc>,
+pub struct GlobalInstant<Tz: TimeZone> {
+    datetime: DateTime<Tz>,
     elapsed: Duration,
 }
 
-impl GlobalTime {
-    pub fn at(datetime: DateTime<Utc>) -> Self {
+impl<Tz: TimeZone> GlobalTime<Tz> {
+    pub fn at(datetime: DateTime<Tz>) -> Self {
         Self {
             instant: Instant::now(),
             datetime,
         }
     }
 
-    pub fn now(&self) -> GlobalInstant {
+    pub fn now(&self) -> GlobalInstant<Tz> {
         GlobalInstant {
-            datetime: self.datetime,
+            datetime: self.datetime.clone(),
             elapsed: self.instant.elapsed(),
         }
     }
 }
 
-impl GlobalInstant {
+impl<Tz: TimeZone> GlobalInstant<Tz> {
     pub fn day_minute(&self) -> u64 {
         ((self.datetime.num_seconds_from_midnight() as u64 + self.elapsed.as_secs()) / 60)
             % (24 * 60)

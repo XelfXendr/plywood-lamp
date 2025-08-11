@@ -1,0 +1,5 @@
+{
+  "type": "set",
+  "color": $color,
+  "duration": $duration
+}

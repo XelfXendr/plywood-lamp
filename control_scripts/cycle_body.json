@@ -1,0 +1,6 @@
+{
+  "type": "cycle",
+  "on_color": $color,
+  "current_time": "$current_time",
+  "cycle_minutes": $minutes
+}
