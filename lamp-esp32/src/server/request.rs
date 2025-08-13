@@ -4,7 +4,7 @@ use httparse::Status;
 use microjson::JSONValue;
 
 use super::parse_error::ParseError;
-use crate::types::{ranges::OverlapRanges, Color};
+use crate::types::{Color, ranges::OverlapRanges};
 
 pub enum LedRequest {
     Set(Color, Duration),
@@ -55,7 +55,6 @@ impl LedRequest {
                 let on_color = Self::parse_color(json.get_key_value("on_color")?)?;
                 let current_time: DateTime<FixedOffset> =
                     json.get_key_value("current_time")?.read_string()?.parse()?;
-
 
                 let mut minutes_iter = json.get_key_value("cycle_minutes")?.iter_array()?;
                 let mut minutes: [u64; 4] = [0; 4];

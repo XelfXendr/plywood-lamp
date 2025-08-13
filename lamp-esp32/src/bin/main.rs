@@ -5,11 +5,11 @@
 use lamp_esp32::{
     leds::{
         controller::LedController,
-        runner::{run_leds, LedSignal},
+        runner::{LedSignal, run_leds},
     },
     server::{
-        wifi::{connection, net_task},
         Server,
+        wifi::{connection, net_task},
     },
 };
 

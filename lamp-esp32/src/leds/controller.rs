@@ -2,12 +2,12 @@ use core::mem;
 
 use embassy_time::{Duration, Timer};
 use esp_hal::{
+    Blocking,
     gpio::{AnyPin, Level},
     peripheral::Peripheral,
     peripherals::RMT,
     rmt::{Channel, Error, PulseCode, Rmt, TxChannel, TxChannelConfig, TxChannelCreator},
     time::Rate,
-    Blocking,
 };
 
 use crate::types::Color;

@@ -38,24 +38,19 @@ impl<T: Eq + Ord, const N: usize> OverlapRanges<T, N> {
         Ok(Self { ranges })
     }
 
-
     pub fn which(&self, value: T) -> usize {
-        
-        if value < self.ranges[0] || value >= self.ranges[N-1] {
-            return 0
+        if value < self.ranges[0] || value >= self.ranges[N - 1] {
+            return 0;
         }
 
-
         for i in 0..N - 1 {
-            if self.ranges[i] <= value && value < self.ranges[i+1] {
-                return i+1
+            if self.ranges[i] <= value && value < self.ranges[i + 1] {
+                return i + 1;
             }
         }
 
         unreachable!("because the array is well ordered")
     }
-
-
 }
 
 impl<const N: usize> OverlapRanges<u64, N> {

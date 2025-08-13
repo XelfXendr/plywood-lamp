@@ -1,6 +1,6 @@
 use embassy_time::Duration;
 
-use super::{MoveTo, DaylightCycle};
+use super::{DaylightCycle, MoveTo};
 use crate::types::Color;
 
 pub enum EffectStatus {

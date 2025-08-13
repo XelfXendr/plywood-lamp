@@ -13,7 +13,7 @@ pub async fn connection(
     password: &'static str,
 ) {
     loop {
-        if esp_wifi::wifi::wifi_state() == WifiState::StaConnected{
+        if esp_wifi::wifi::wifi_state() == WifiState::StaConnected {
             // wait until we're no longer connected
             controller.wait_for_event(WifiEvent::StaDisconnected).await;
             Timer::after(Duration::from_millis(5000)).await
