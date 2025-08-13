@@ -1,5 +1,3 @@
-use esp_println::println;
-
 use super::ParseError;
 
 pub struct ResponseBuilder<'a> {
@@ -44,8 +42,6 @@ impl<'a> ResponseBuilder<'a> {
 
         let status_line = "HTTP/1.1 400 Bad Request";
         let contents_begin = "{\"response\": \"";
-
-        println!("{:?}", error);
 
         let contents_explanation = match error {
             ParseError::HttpError(_) => "Invalid HTTP request",

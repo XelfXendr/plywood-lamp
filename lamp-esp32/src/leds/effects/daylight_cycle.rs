@@ -1,6 +1,5 @@
 use chrono::{DateTime, FixedOffset};
 use embassy_time::Duration;
-use esp_println::println;
 
 use super::{EffectEnum, EffectStatus};
 use crate::leds::effects::MoveTo;
@@ -78,11 +77,6 @@ impl DaylightCycle {
             _ => unreachable!("There are only 4 ranges."),
         };
 
-        println!("range: {:?}, current_minute: {:?}, state: {:?}", to_minute_idx, current_minute, state);
-        if let CycleState::Off(d) = state {
-            println!("Dur: {:?} minutes", d.as_secs() / 60);
-        }
-
         Self {
             on_color,
             current_color: from_color,
@@ -141,11 +135,6 @@ impl DaylightCycle {
 
         // time to update our state
         self.state = self.should_be_state();
-
-        println!("new state: {:?}", self.state);
-        if let CycleState::Off(d) = self.state {
-            println!("Dur: {:?} minutes", d.as_secs() / 60);
-        }
 
         let (color, mut status) = match &mut self.state {
             CycleState::Rising(effect) => effect.step(),

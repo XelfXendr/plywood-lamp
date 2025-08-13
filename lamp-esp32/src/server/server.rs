@@ -1,7 +1,6 @@
 use embassy_net::{Stack, tcp::TcpSocket};
 use embassy_time::{Duration, Timer};
 use embedded_io_async::Write;
-use esp_println::println;
 
 use crate::leds::runner::LedSignal;
 
@@ -28,11 +27,9 @@ impl<'d, const B: usize, const W: usize> Server<'d, B, W> {
 
     pub async fn run(&mut self) {
         loop {
-            println!("Creating socket...");
             let mut socket = TcpSocket::new(self.stack, &mut self.rx_buffer, &mut self.tx_buffer);
             socket.set_timeout(Some(Duration::from_secs(1)));
             socket.set_keep_alive(None);
-            println!("trying to accept");
             let v4 = loop {
                 match self.stack.config_v4() {
                     Some(v4) => break v4,
@@ -41,43 +38,29 @@ impl<'d, const B: usize, const W: usize> Server<'d, B, W> {
                     }
                 }
             };
-            println!("Got IP: {}, creating socket", v4.address);
 
             let accept_result = socket.accept((v4.address.address(), 8308)).await;
-            if let Err(e) = accept_result {
-                println!("accept error: {:?}", e);
-            } else {
-                println!("accepted!");
-                loop {
-                    println!("Reading");
-                    match socket.read(&mut self.work_buffer).await {
-                        Ok(0) => {
-                            println!("read EOF");
-                            break;
-                        }
-                        Ok(n) => {
-                            println!("{:?}", str::from_utf8(&self.work_buffer[..n]));
-                            let parse_result = LedRequest::parse_http(&self.work_buffer[..n]);
+            if let Err(_) = accept_result {
+                continue;
+            }
 
-                            let mut response_builder = ResponseBuilder::new(&mut self.work_buffer);
+            if let Ok(n) = socket.read(&mut self.work_buffer).await
+                && n > 0
+            {
+                let parse_result = LedRequest::parse_http(&self.work_buffer[..n]);
 
-                            let response = match parse_result {
-                                Ok(request) => {
-                                    self.led_signal.signal(request);
-                                    response_builder.build_response()
-                                }
-                                Err(error) => response_builder.build_bad_request(error),
-                            };
+                let mut response_builder = ResponseBuilder::new(&mut self.work_buffer);
 
-                            if socket.write_all(response).await.is_ok() {
-                                let _ = socket.flush().await;
-                            }
-                        }
-                        Err(e) => {
-                            println!("read error: {:?}", e);
-                            break;
-                        }
+                let response = match parse_result {
+                    Ok(request) => {
+                        self.led_signal.signal(request);
+                        response_builder.build_response()
                     }
+                    Err(error) => response_builder.build_bad_request(error),
+                };
+
+                if socket.write_all(response).await.is_ok() {
+                    let _ = socket.flush().await;
                 }
             }
         }

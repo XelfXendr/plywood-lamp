@@ -1,6 +1,5 @@
-use chrono::{DateTime, FixedOffset, Timelike};
+use chrono::{DateTime, FixedOffset};
 use embassy_time::Duration;
-use esp_println::println;
 use httparse::Status;
 use microjson::JSONValue;
 
@@ -57,7 +56,6 @@ impl LedRequest {
                 let current_time: DateTime<FixedOffset> =
                     json.get_key_value("current_time")?.read_string()?.parse()?;
 
-                println!("{:?}:{:?} + {:?}", current_time.hour(), current_time.minute(), current_time.hour());
 
                 let mut minutes_iter = json.get_key_value("cycle_minutes")?.iter_array()?;
                 let mut minutes: [u64; 4] = [0; 4];

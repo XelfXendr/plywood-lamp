@@ -21,7 +21,6 @@ use esp_hal::{
     rng::Rng,
     timer::{systimer::SystemTimer, timg::TimerGroup},
 };
-use esp_println::println;
 use static_cell::make_static;
 
 extern crate alloc;
@@ -73,8 +72,6 @@ async fn main(spawner: Spawner) {
         .ok();
     spawner.spawn(net_task(runner)).ok();
 
-    println!("Init done!, {} {}", SSID, PASSWORD);
-
     let led_signal = make_static!(LedSignal::new());
 
     let strip_pin = peripherals.GPIO3.degrade();
@@ -82,7 +79,6 @@ async fn main(spawner: Spawner) {
 
     spawner.spawn(run_leds(controller, led_signal)).ok();
 
-    println!("Starting server...");
     let mut server = Server::<4096, 1024>::new(stack, led_signal);
 
     server.run().await;
