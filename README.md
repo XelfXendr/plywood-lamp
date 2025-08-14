@@ -18,7 +18,7 @@ The light is composed of the ESP32-C3 SuperMini board, which controls a WS2813 L
 ### Build & flash
 
 Set the SSID and PASSWORD variables in [lamp-esp32/.cargo/config.toml](lamp-esp32/.cargo/config.toml).
-With those set, and with the ESP board connected via a USB cable, you can now run the following command to flash the board: 
+With those set, and with the ESP board connected via a USB cable, you can now run the following commands to flash the board: 
 
 ```bash
 cd lamp-esp32
