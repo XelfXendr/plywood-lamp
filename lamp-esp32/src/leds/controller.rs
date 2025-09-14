@@ -1,5 +1,3 @@
-use core::mem;
-
 use embassy_time::{Duration, Timer};
 use esp_hal::{
     Blocking,
@@ -65,8 +63,20 @@ impl LedController {
         data[24] = PulseCode::empty();
 
         // send data
-        let mut channel = mem::replace(&mut self.channel, None).ok_or(Error::TransmissionError)?;
-        let tx = channel.transmit_continuously_with_loopcount(self.num_leds as u16, &data)?;
+        self.channel = Self::send_through(self.channel.take(), &data, self.num_leds as u16).await?;
+
+        // wait before we can send new data
+        Timer::after(Duration::from_micros(RES)).await;
+        Ok(())
+    }
+
+    async fn send_through<C: TxChannel>(
+        channel: Option<C>,
+        data: &[u32],
+        loopcount: u16,
+    ) -> Result<Option<C>, Error> {
+        let mut channel = channel.ok_or(Error::TransmissionError)?;
+        let tx = channel.transmit_continuously_with_loopcount(loopcount, &data)?;
         while !tx.is_loopcount_interrupt_set() {
             Timer::after(Duration::from_micros(100)).await;
         }
@@ -74,10 +84,6 @@ impl LedController {
             Ok(c) => c,
             Err((_e, c)) => c,
         };
-        self.channel = Some(channel);
-
-        // wait before we can send new data
-        Timer::after(Duration::from_micros(RES)).await;
-        Ok(())
+        Ok(Some(channel))
     }
 }
